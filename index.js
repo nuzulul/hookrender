@@ -12,6 +12,10 @@ app.get("/", (req, res) => {
   res.send("Render Puppeteer server is up and running!");
 });
 
+app.get("/ok", (req, res) => {
+  res.send("ok");
+});
+
 app.listen(PORT, () => {
   console.log(`Listening on port ${PORT}`);
 });
