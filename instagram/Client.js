@@ -1,5 +1,13 @@
 'use strict'
 
+// puppeteer-extra is a drop-in replacement for puppeteer,
+// it augments the installed puppeteer with plugin functionality
+const puppeteerextra = require('puppeteer-extra')
+
+// add stealth plugin and use defaults (all evasion techniques)
+const StealthPlugin = require('puppeteer-extra-plugin-stealth')
+puppeteerextra.use(StealthPlugin())
+
 const puppeteer = require('puppeteer');
 const ClientEvent = require('./structures/ClientEvent');
 const { URLS, DEFAULT_PUPPETEER_OPTIONS, DEFAULT_USER_AGENT, STATUS, ALLOWED_MEDIA_MIMETYPES, MAX_FEED_VIDEO_DURATION_IN_SECONDS } = require("./utilities/Constants");
@@ -48,11 +56,20 @@ class Client extends ClientEvent {
         await this.authentication.setupUserDir();
         this.puppeteerOptions.userDataDir = this.authentication.userDataDir;
 
-        if (this.puppeteerOptions.browserWSEndpoint) {
-            this.browser = await puppeteer.connect(this.puppeteerOptions);
-        } else {
-            this.browser = await puppeteer.launch(this.puppeteerOptions);
+        if (this.puppeteerOptions.headless){
+            if (this.puppeteerOptions.browserWSEndpoint) {
+                this.browser = await puppeteerextra.connect(this.puppeteerOptions);
+            } else {
+                this.browser = await puppeteerextra.launch(this.puppeteerOptions);
+            }
+        }else{
+            if (this.puppeteerOptions.browserWSEndpoint) {
+                this.browser = await puppeteer.connect(this.puppeteerOptions);
+            } else {
+                this.browser = await puppeteer.launch(this.puppeteerOptions);
+            }
         }
+          
         this.page = (await this.browser.pages())[0]
         //this.page = await this.browser.newPage();
         
@@ -87,7 +104,7 @@ class Client extends ClientEvent {
         
 
                   
-        //await this.page.setUserAgent(this.userAgent);
+        await this.page.setUserAgent(this.userAgent);
 
         this.page.on("response", this.onPageAuthenticationResponse);
 
@@ -104,25 +121,18 @@ class Client extends ClientEvent {
         
         console.log('status2: '+this.status)
 
-        try {
-          await currentPage.waitForSelector("svg[aria-label='New post']")
-          console.log('detect auth from cookies');
-        } catch(e) {
-          console.log('not detect auth from cookies')
-        }
-        
-        console.log('status3: '+this.status)
-
         if (this.status === STATUS.AUTHENTICATED) {
             console.log('return')
             return;
         };
         
-        console.log('status4: '+this.status)
+        console.log('status3: '+this.status)
         
         try{
           await this.page.type('input[name="username"]', this.authentication.username);
+          await this.page.waitForTimeout(2000);
           await this.page.type('input[name="password"]', this.authentication.password);
+          await this.page.waitForTimeout(2000);
           //await this.page.click('[type="submit"]');
           console.log('login form')
           //await this.page.waitForNavigation({waitUntil: 'networkidle2'});
@@ -132,14 +142,37 @@ class Client extends ClientEvent {
           ]);
         }catch(e){}
         
-        console.log('status5: '+this.status)
+        console.log('status4: '+this.status)
 
         try {
-          await currentPage.waitForSelector("svg[aria-label='New post']")
-          console.log('detect auth from svg')
-        } catch(e) {          
-          console.log('not detect auth from svg')
+          await this.page.waitForSelector("svg[aria-label='New post']")
+          console.log('detect true login');
+          this.onClientPosAuthenticated()
+          console.log('status5: '+this.status)
+          return;
+        } catch(e) {
+          console.log('detect login failed')
         }
+
+        try{
+            await currentPage.waitForFunction(
+              '[...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("dismiss"))',
+            );
+            console.log('detect suspect automated')            
+            // dismiss.
+            await currentPage.evaluate(() => {
+                [...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("dismiss")).focus();
+                [...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("dismiss")).click();
+            })
+            this.page.waitForNavigation()
+            this.onClientPosAuthenticated()
+            console.log('detect suspect automated resolve')  
+        } catch(e) {
+          console.log('dismis suspect automated gagal')  
+          this.onClientCommandError()  
+        }
+        
+        console.log('status6: '+this.status)
 
         //await this.page.waitForTimeout(5000);
         //const client = await this.page.target().createCDPSession();
@@ -308,6 +341,7 @@ class Client extends ClientEvent {
                 })
             }
 
+            console.log("mrendownload gambar")
             for (var mediaIndex = 0; mediaIndex < media.length; mediaIndex++) {
                 if (media[mediaIndex].url) {
                     await media[mediaIndex].fetch(this.authentication.userMediaDir);
@@ -330,6 +364,7 @@ class Client extends ClientEvent {
                 }
             }
 
+            console.log("membuka tab baru")
             const currentPage = await this.openNewPage();
 
             await currentPage.goto(URLS.BASE, {
@@ -337,13 +372,24 @@ class Client extends ClientEvent {
                 timeout: 0,
             });
 
-            await currentPage.waitForSelector("svg[aria-label='New post']")
+            try{
+              await currentPage.waitForSelector("svg[aria-label='New post']")
+            } catch(e) {
+              reject(e)
+            }
+            console.log("siap upload")
+            
+            await currentPage.waitForTimeout(3000);
 
-            await currentPage.evaluate(Injects);
+            try{
+              await currentPage.evaluate(Injects);
+            }catch{}
 
             const openNewPostModal = await currentPage.evaluate(_ => {
                 return window.IGJS.openNewPostModal();
             })
+            
+            await currentPage.waitForTimeout(2000);
 
             if (!openNewPostModal) {
                 removeAllMedia();
@@ -413,7 +459,7 @@ class Client extends ClientEvent {
                 [...document.querySelectorAll('div[role="button"]')].find(b => b.innerText.toLowerCase().match('next')).click();
             })
 
-            await currentPage.waitForTimeout(200);
+            await currentPage.waitForTimeout(2000);
 
             // Next to the create a post.
             await currentPage.evaluate(() => {
@@ -423,30 +469,43 @@ class Client extends ClientEvent {
             // Wait for transition.
             await currentPage.waitForTimeout(1000);
 
+            console.log("menambahkan caption")
             if (caption) {
                 await currentPage.waitForSelector('[contenteditable="true"][role="textbox"]')
                 await currentPage.type('[contenteditable="true"][role="textbox"]', caption)
                 await currentPage.waitForTimeout(500);
 
             }
+            await currentPage.waitForTimeout(5000);
+            console.log('mulai upload')
 
             // Share the post.
             await currentPage.evaluate(() => {
                 [...document.querySelectorAll('div[role="button"]')].find(b => b.innerText.toLowerCase().match('share')).focus();
                 [...document.querySelectorAll('div[role="button"]')].find(b => b.innerText.toLowerCase().match('share')).click();
             })
-
-            removeAllMedia();
-
+                        
+            
             await currentPage.waitForNetworkIdle({
                 timeout: 60 * 2 * 1000
             });
+            
+            try{
+                await currentPage.waitForFunction(
+                  '[...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("your post has been shared"))',
+                );
+                console.log('posting sukses')            
+            } catch(e) {
+              console.log('posting gagal')
+              console.log(e)
+              reject(e)
+            }
+            
+            removeAllMedia();
 
             if (!currentPage.isClosed()) {
                 await currentPage.close();
             }
-
-            this.onClientCommandFinish()
             
             resolve(true);
         });
@@ -470,6 +529,7 @@ class Client extends ClientEvent {
                 })
             }
 
+            console.log("mrendownload video")
             for (var mediaIndex = 0; mediaIndex < media.length; mediaIndex++) {
                 if (media[mediaIndex].url) {
                     await media[mediaIndex].fetch(this.authentication.userMediaDir);
@@ -492,6 +552,7 @@ class Client extends ClientEvent {
                 }
             }
 
+            console.log("membuka tab baru")
             const currentPage = await this.openNewPage();
 
             await currentPage.goto(URLS.BASE, {
@@ -499,9 +560,16 @@ class Client extends ClientEvent {
                 timeout: 0,
             });
 
-            await currentPage.waitForSelector("svg[aria-label='New post']")
+            try{
+              await currentPage.waitForSelector("svg[aria-label='New post']")
+            } catch(e) {
+              reject(e)
+            }
+            console.log("siap upload")
 
-            await currentPage.evaluate(Injects);
+            try{
+              await currentPage.evaluate(Injects);
+            }catch{}
 
             const openNewPostModal = await currentPage.evaluate(_ => {
                 return window.IGJS.openNewPostModal();
@@ -590,6 +658,7 @@ class Client extends ClientEvent {
             // Wait for transition.
             await currentPage.waitForTimeout(1000);
 
+            console.log("menambahkan caption")
             if (caption) {
                 await currentPage.waitForSelector('[contenteditable="true"][role="textbox"]')
                 await currentPage.type('[contenteditable="true"][role="textbox"]', caption)
@@ -597,26 +666,28 @@ class Client extends ClientEvent {
 
             }
             
-            console.log('add caption')
+            console.log('mulai upload')
 
             // Share the post.
             await currentPage.evaluate(() => {
                 [...document.querySelectorAll('div[role="button"]')].find(b => b.innerText.toLowerCase().match('share')).focus();
                 [...document.querySelectorAll('div[role="button"]')].find(b => b.innerText.toLowerCase().match('share')).click();
             })
-            
-            try{
-                await currentPage.waitForFunction(
-                  '[...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("your reel has been shared"))',
-                );
-                console.log('found')            
-            } catch(e) {
-              console.log(e)
-            }
 
             await currentPage.waitForNetworkIdle({
                 timeout: 60 * 2 * 1000
             });
+
+            try{
+                await currentPage.waitForFunction(
+                  '[...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("your reel has been shared"))',
+                );
+                console.log('posting suskses')            
+            } catch(e) {
+              console.log('posting gagal')   
+              console.log(e)
+              reject(e)
+            }
             
             removeAllMedia();
 

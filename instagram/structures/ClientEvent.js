@@ -20,8 +20,17 @@ class ClientEvent extends EventEmitter {
     }
 
     listen() {
+        this.on(EVENTS.PREAUTHENTICATED, this.onClientPreAuthenticated);
         this.on(EVENTS.AUTHENTICATED, this.onClientAuthenticated);
-        this.on(EVENTS.AUTHENTICATION_FAILURE, this.onClientAuthenticated);
+        this.on(EVENTS.AUTHENTICATION_FAILURE, this.onClientAuthenticationFaulure);
+    }
+
+    onClientPreAuthenticated() {
+        this.status = STATUS.PREAUTHENTICATED;
+    }
+
+    onClientPosAuthenticated() {
+        this.emit(EVENTS.AUTHENTICATED);
     }
 
     onClientAuthenticated() {
@@ -31,21 +40,22 @@ class ClientEvent extends EventEmitter {
 
     onClientAuthenticationFaulure() {
         this.status = STATUS.UNAUTHENTICATED;
+        this.onClientCommandError();
     }
 
     onPageAuthenticationResponse = async (response) => {
         //console.log(response.status())
         //console.log(response.url())
         if (response.status() == 302 && response.url() == URLS.LOGIN) {
-            console.log('auth from 302')
+            console.log('auth sukses from 302')
             this.emit(EVENTS.AUTHENTICATED);
         }
         if (response.url().split("?")[0] == URLS.LOGIN_API) {
             const responseJSON = await response.json();
           
             if (responseJSON.authenticated) {
-                console.log('auth from url login api')
-                this.emit(EVENTS.AUTHENTICATED);
+                console.log('auth sukses from url login api')
+                this.emit(EVENTS.PREAUTHENTICATED);
             } else {
                 console.log('auth fail')
                 this.emit(EVENTS.AUTHENTICATION_FAILURE);
@@ -53,8 +63,12 @@ class ClientEvent extends EventEmitter {
         }
     }
     
-    onClientCommandFinish(){
-      this.emit('commandfinish');
+    onClientCommandSukses(){
+      this.emit('commandsukses');
+    }
+
+    onClientCommandError(){
+      this.emit('commanderror');
     }
 }
 

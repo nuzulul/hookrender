@@ -1,7 +1,7 @@
 require("dotenv").config();
 const { Client, Authentication, FeedMedia, EVENTS, CROP_SIZES } = require("./instagram");
 
-const posting = async (data) => {
+const posting = (data) => {
   let command = data.command
   let source = data.source
   let caption = data.caption
@@ -23,10 +23,13 @@ const posting = async (data) => {
           }
       });
       
-      client.on("authenticated", () => {
+      client.on("authenticated", async () => {
+      console.log('tunggu 5 detik')
+      const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+      await delay(5000)
 
         if (command == "gambar") {
-            const data = client.postFeed({
+            const myPromise = client.postFeed({
                 media: [
                     FeedMedia.fromUrl({
                         url: source,
@@ -36,9 +39,12 @@ const posting = async (data) => {
                 crop: CROP_SIZES.ORIGINAL,
                 caption: caption
             })
-            console.log(data)
+            myPromise.then(
+              function(value) { console.log('upload gambar sukses');client.onClientCommandSukses(); },
+              function(error) { console.log('upload gambar gagal');client.onClientCommandError(); }
+            )
         } else if(command == "video"){
-            const data = client.postVideo({
+            const myPromise = client.postVideo({
                 media: [
                     FeedMedia.fromUrl({
                         url: source,
@@ -48,15 +54,24 @@ const posting = async (data) => {
                 crop: CROP_SIZES.ORIGINAL,
                 caption: caption
             })
-            console.log(data)
+            myPromise.then(
+              function(value) { console.log('upload video sukses');client.onClientCommandSukses(); },
+              function(error) { console.log('upload video gagal');client.onClientCommandError(); }
+            )
         } else {
             console.log('tidaktahu')
+            client.onClientCommandError();
         }
       });
       
-      client.on("commandfinish", () => {
+      client.on("commandsukses", () => {
         client.closeClientBrowser()
         resolve(true)
+      });
+
+      client.on("commanderror", () => {
+        client.closeClientBrowser()
+        reject()
       });
       
       client.initialize()

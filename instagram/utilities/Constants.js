@@ -1,11 +1,14 @@
 'use strict'
 
 exports.EVENTS = {
+    PREAUTHENTICATED: "preauthenticated",
     AUTHENTICATED: "authenticated",
     AUTHENTICATION_FAILURE: 'auth_failure',
 }
 
 exports.STATUS = {
+    
+    PREAUTHENTICATED: "preauthenticated",
     AUTHENTICATED: "authenticated",
     UNAUTHENTICATED: "unauthenticated",
 }

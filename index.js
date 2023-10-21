@@ -14,6 +14,7 @@ app.route('/posting')
     res.send("get ok");
   })
   .post( (req, res, next) => {
+    try {
       let data = req.body;
       
       //console.log(JSON.stringify(data))
@@ -22,14 +23,22 @@ app.route('/posting')
           console.log('Response has been sent!')
           //postPhoto();
           if(data.command == 'gambar' || data.command == 'video'){
-              Promise.all([posting(data)]).then((val) => {
+              //Promise.all([posting(data)]).then((val) => {
 
-                  service = val[0];
-                  console.log('I am called after all promises completed.')
-              });
+                  //myPromise = val[0];
+                  const myPromise = posting(data)
+                  myPromise.then(
+                    function(value) { console.log('kode sukses') },
+                    function(error) { console.log('kode gagal') }
+                  );
+                  //console.log('I am called after all promises completed.')
+              //});
           }
       })
-      next()  
+      next();
+    } catch(e){
+      next(e)  
+    }
   });
 
 app.get("/", (req, res) => {
