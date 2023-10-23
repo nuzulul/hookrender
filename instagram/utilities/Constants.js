@@ -26,7 +26,7 @@ exports.DEFAULT_PUPPETEER_OPTIONS = {
     defaultViewport: null,
 }
 
-exports.DEFAULT_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36";
+exports.DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 Edg/118.0.2088.61";
 
 exports.ALLOWED_MEDIA_EXTENSIONS = [
     "jpeg",

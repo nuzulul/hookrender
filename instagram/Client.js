@@ -8,7 +8,7 @@ const puppeteerextra = require('puppeteer-extra')
 const StealthPlugin = require('puppeteer-extra-plugin-stealth')
 puppeteerextra.use(StealthPlugin())
 
-const puppeteer = require('puppeteer');
+const puppeteernormal = require('puppeteer');
 const ClientEvent = require('./structures/ClientEvent');
 const { URLS, DEFAULT_PUPPETEER_OPTIONS, DEFAULT_USER_AGENT, STATUS, ALLOWED_MEDIA_MIMETYPES, MAX_FEED_VIDEO_DURATION_IN_SECONDS } = require("./utilities/Constants");
 const Injects = require('./utilities/Injects');
@@ -50,28 +50,54 @@ class Client extends ClientEvent {
     * Sets up events and requirements, kicks off authentication request
     * @returns {Promise<void>}
     */
-    async initialize() {
-        this.listen();
-
-        await this.authentication.setupUserDir();
-        this.puppeteerOptions.userDataDir = this.authentication.userDataDir;
-
-        if (this.puppeteerOptions.headless){
-            if (this.puppeteerOptions.browserWSEndpoint) {
-                this.browser = await puppeteerextra.connect(this.puppeteerOptions);
-            } else {
-                this.browser = await puppeteerextra.launch(this.puppeteerOptions);
-            }
-        }else{
-            if (this.puppeteerOptions.browserWSEndpoint) {
-                this.browser = await puppeteer.connect(this.puppeteerOptions);
-            } else {
-                this.browser = await puppeteer.launch(this.puppeteerOptions);
-            }
+    async initialize(command = "launch") {
+    
+        console.log('cek browser')
+        console.log(this.browser)
+    
+        let pageexists = true
+        if(this.browser != undefined){
+          console.log('page:'+(await this.browser.pages()).length)
+          if(!(await this.browser.pages()).length > 0){
+            pageexists = false
+          }
         }
+    
+        if(this.browser == undefined || !pageexists){
+          console.log('launch browser')
+          this.listen();
+
+          await this.authentication.setupUserDir();
+          //this.puppeteerOptions.userDataDir = this.authentication.userDataDir;
+
+          if (this.puppeteerOptions.headless){
+              console.log('launch puppeteerextra browser')
+              if (this.puppeteerOptions.browserWSEndpoint) {
+                  this.browser = await puppeteerextra.connect(this.puppeteerOptions);
+              } else {
+                  this.browser = await puppeteerextra.launch(this.puppeteerOptions);
+              }
+          }else{
+              console.log('launch puppeteernormal browser')
+              if (this.puppeteerOptions.browserWSEndpoint) {
+                  this.browser = await puppeteernormal.connect(this.puppeteerOptions);
+              } else {
+                  this.browser = await puppeteernormal.launch(this.puppeteerOptions);
+              }
+          }
           
-        this.page = (await this.browser.pages())[0]
-        //this.page = await this.browser.newPage();
+        }
+        
+        if (command != "login") return true;
+        
+        this.status = STATUS.UNAUTHENTICATED
+        
+        if((await this.browser.pages()).length > 0){  
+          //this.page = (await this.browser.pages())[0]
+          this.page = await this.browser.newPage();
+        }else{
+          this.page = await this.browser.newPage();
+        }
         
         console.log('status1: '+this.status)
         
@@ -104,7 +130,7 @@ class Client extends ClientEvent {
         
 
                   
-        await this.page.setUserAgent(this.userAgent);
+        //await this.page.setUserAgent(this.userAgent);
 
         this.page.on("response", this.onPageAuthenticationResponse);
 
@@ -123,7 +149,7 @@ class Client extends ClientEvent {
 
         if (this.status === STATUS.AUTHENTICATED) {
             console.log('return')
-            return;
+            return true;
         };
         
         console.log('status3: '+this.status)
@@ -149,7 +175,7 @@ class Client extends ClientEvent {
           console.log('detect true login');
           this.onClientPosAuthenticated()
           console.log('status5: '+this.status)
-          return;
+          return true;
         } catch(e) {
           console.log('detect login failed')
         }
@@ -169,7 +195,10 @@ class Client extends ClientEvent {
             console.log('detect suspect automated resolve')  
         } catch(e) {
           console.log('dismis suspect automated gagal')  
-          this.onClientCommandError()  
+          if (!this.page.isClosed()) {
+              await this.page.close();
+          }
+          this.onClientCommandError('auth failed')  
         }
         
         console.log('status6: '+this.status)
@@ -182,7 +211,7 @@ class Client extends ClientEvent {
         //const localStorage = await this.page.evaluate(() => JSON.stringify(window.localStorage));
         //await this.authentication.writeCookies(cookiesObject,sessionStorage,localStorage);
         
-        return;
+        return true;
     }
    
 
@@ -191,14 +220,72 @@ class Client extends ClientEvent {
      * @returns {Promise<Page>}
      */
     async openNewPage() {
+        //const currentPage = (await this.browser.pages())[0]
         const currentPage = await this.browser.newPage();
-        await currentPage.setUserAgent(this.userAgent);
+        //await currentPage.setUserAgent(this.userAgent);
 
         return currentPage;
     }
     
     async closeClientBrowser(){
-      this.browser.close()
+             
+            try{
+                console.log('closeClientBrowser success') 
+                await this.browser.close()
+            }catch{
+                console.log('closeClientBrowser gagal')
+            }
+
+    }
+
+    async openBrowse(source) {
+        console.log('openBrowse')
+        return new Promise(async (resolve) => {
+            const currentPage = await this.openNewPage();
+            let result
+            try{
+
+                await currentPage.goto(source, {
+                    waitUntil: 'networkidle0',
+                    timeout: 0,
+                });
+                result = 'openbrowse sukses'
+            }catch{
+              console.log('invalid url')
+              result = 'openbrowse invalid url'
+            }
+
+            return resolve(result);
+
+            if (!currentPage.isClosed()) {
+                //await currentPage.close();
+            }
+        });
+    }
+
+    async closeBrowse(source) {
+        console.log('closeBrowse')
+        return new Promise(async (resolve) => {
+            await this.closeClientBrowser()            
+            return resolve('closebrowse sukses');
+            
+        });
+    }
+
+    async screenShot(source) {
+        console.log('screenShot')
+        return new Promise(async (resolve) => {
+            const pages = (await this.browser.pages()).length
+            
+            if(pages > 0){
+              const currentPage = (await this.browser.pages())[pages - 1]
+              await currentPage.screenshot({ path: './public/result.png', fullPage: true })
+              return resolve('result.png');
+            }else{
+              return resolve('error');
+            }        
+            
+        });
     }
 
     /**
@@ -207,6 +294,7 @@ class Client extends ClientEvent {
      * @returns {Promise<string|null>}
      */
     async getUserPicture(username) {
+        console.log('getUserPicture')
         return new Promise(async (resolve) => {
             const currentPage = await this.openNewPage();
 
@@ -236,6 +324,7 @@ class Client extends ClientEvent {
 
             if (!currentPage.isClosed()) {
                 await currentPage.close();
+                await this.closeClientBrowser()
             }
         });
     }
@@ -246,6 +335,7 @@ class Client extends ClientEvent {
      * @returns {Promise<object|null>}
      */
     async getUser(username) {
+        console.log('getUser')
         return new Promise(async (resolve) => {
             const currentPage = await this.openNewPage();
 
@@ -275,6 +365,7 @@ class Client extends ClientEvent {
 
             if (!currentPage.isClosed()) {
                 await currentPage.close();
+                await this.closeClientBrowser()
             }
         });
     }
@@ -283,6 +374,7 @@ class Client extends ClientEvent {
      * @returns {Promise<object|null>}
      */
     async getInfo() {
+        console.log('getInfo')
         return new Promise(async (resolve) => {
             const currentPage = await this.openNewPage();
 
@@ -312,6 +404,7 @@ class Client extends ClientEvent {
 
             if (!currentPage.isClosed()) {
                 await currentPage.close();
+                await this.closeClientBrowser()
             }
         });
     }
@@ -505,6 +598,7 @@ class Client extends ClientEvent {
 
             if (!currentPage.isClosed()) {
                 await currentPage.close();
+                await this.closeClientBrowser()
             }
             
             resolve(true);
@@ -693,6 +787,7 @@ class Client extends ClientEvent {
 
             if (!currentPage.isClosed()) {
                 await currentPage.close();
+                await this.closeClientBrowser()
             }
 
             resolve(true);

@@ -1,18 +1,19 @@
 require("dotenv").config();
-const { Client, Authentication, FeedMedia, EVENTS, CROP_SIZES } = require("./instagram");
+const { Client, Authentication, FeedMedia, EVENTS, CROP_SIZES } = require("./instagram/instagram");
 
 const posting = (data) => {
   let command = data.command
   let source = data.source
   let caption = data.caption
   return new Promise((resolve, reject) => {
+/*      const PUPPETEER_HEADLESS = process.env.PUPPETEER_HEADLESS === "TRUE"?true:false
       const client = new Client({
           authentication: new Authentication({
               username: process.env.IG_USERNAME,
               password: process.env.IG_PASSWORD,
           }),
           puppeteerOptions: {
-              headless: true,
+              headless: PUPPETEER_HEADLESS,
               args: [
                 "--disable-setuid-sandbox",
                 "--no-sandbox",
@@ -22,59 +23,67 @@ const posting = (data) => {
               ],
           }
       });
+*/      
+      const client = puppeterclient
+      client.authentication.username = process.env.IG_USERNAME
+      client.authentication.password = process.env.IG_PASSWORD
+      client.removeAllListeners('commanderror')
+      client.removeAllListeners('commandsukses')
+      client.removeAllListeners('authenticated')
+      client.removeAllListeners('auth_failure')
       
       client.on("authenticated", async () => {
-      console.log('tunggu 5 detik')
-      const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
-      await delay(5000)
+            console.log('tunggu random 5-12 detik')
+            const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+            await delay((Math.floor(Math.random() * 12) + 5) * 1000)
 
-        if (command == "gambar") {
-            const myPromise = client.postFeed({
-                media: [
-                    FeedMedia.fromUrl({
-                        url: source,
-                        cropSize: CROP_SIZES.ORIGINAL
-                    }),
-                ],
-                crop: CROP_SIZES.ORIGINAL,
-                caption: caption
-            })
-            myPromise.then(
-              function(value) { console.log('upload gambar sukses');client.onClientCommandSukses(); },
-              function(error) { console.log('upload gambar gagal');client.onClientCommandError(); }
-            )
-        } else if(command == "video"){
-            const myPromise = client.postVideo({
-                media: [
-                    FeedMedia.fromUrl({
-                        url: source,
-                        cropSize: CROP_SIZES.ORIGINAL
-                    }),
-                ],
-                crop: CROP_SIZES.ORIGINAL,
-                caption: caption
-            })
-            myPromise.then(
-              function(value) { console.log('upload video sukses');client.onClientCommandSukses(); },
-              function(error) { console.log('upload video gagal');client.onClientCommandError(); }
-            )
-        } else {
-            console.log('tidaktahu')
-            client.onClientCommandError();
-        }
+            if (command == "gambar") {
+                const myPromise = client.postFeed({
+                    media: [
+                        FeedMedia.fromUrl({
+                            url: source,
+                            cropSize: CROP_SIZES.ORIGINAL
+                        }),
+                    ],
+                    crop: CROP_SIZES.ORIGINAL,
+                    caption: caption
+                })
+                myPromise.then(
+                  function(value) { console.log(value);client.onClientCommandSukses(value); },
+                  function(error) { console.log(error);client.onClientCommandError(error); }
+                )
+            } else if(command == "video"){
+                const myPromise = client.postVideo({
+                    media: [
+                        FeedMedia.fromUrl({
+                            url: source,
+                            cropSize: CROP_SIZES.ORIGINAL
+                        }),
+                    ],
+                    crop: CROP_SIZES.ORIGINAL,
+                    caption: caption
+                })
+                myPromise.then(
+                  function(value) { console.log(value);client.onClientCommandSukses(value); },
+                  function(error) { console.log(error);client.onClientCommandError(error); }
+                )
+            } else {
+                console.log('tidaktahu')
+                client.onClientCommandError('error');
+            }
       });
       
-      client.on("commandsukses", () => {
+      client.on("commandsukses", (value) => {
         client.closeClientBrowser()
-        resolve(true)
+        return resolve(value)
       });
 
-      client.on("commanderror", () => {
+      client.on("commanderror", (error) => {
         client.closeClientBrowser()
-        reject()
+        return reject(error)
       });
       
-      client.initialize()
+      client.initialize('login')
   });
 };
 

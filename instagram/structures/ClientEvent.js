@@ -14,6 +14,7 @@ class ClientEvent extends EventEmitter {
     browser;
     page;
     status;
+    tunnel;
 
     constructor() {
         super();
@@ -40,7 +41,6 @@ class ClientEvent extends EventEmitter {
 
     onClientAuthenticationFaulure() {
         this.status = STATUS.UNAUTHENTICATED;
-        this.onClientCommandError();
     }
 
     onPageAuthenticationResponse = async (response) => {
@@ -63,12 +63,12 @@ class ClientEvent extends EventEmitter {
         }
     }
     
-    onClientCommandSukses(){
-      this.emit('commandsukses');
+    onClientCommandSukses(value){
+      this.emit('commandsukses',value);
     }
 
-    onClientCommandError(){
-      this.emit('commanderror');
+    onClientCommandError(error){
+      this.emit('commanderror',error);
     }
 }
 
