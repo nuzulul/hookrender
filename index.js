@@ -57,7 +57,7 @@ app.route('/posting')
                   commandready=false
                   const myPromise = posting(data)
                   myPromise.then(
-                    function(value) { result = value;console.log(value);console.log('kode sukses');coomandready=true; },
+                    function(value) { result = value;console.log(value);console.log('kode sukses');commandready=true; },
                     function(error) { result = error;console.log(error);console.log('kode gagal');commandready=true; }
                   );
                   //console.log('I am called after all promises completed.')
@@ -83,7 +83,7 @@ app.route('/scrape')
   .post( (req, res, next) => {
     try {
       let data = req.body;
-      
+      let key = process.env.HOOKRENDER_APIKEY
       if(data.apikey == key){
         if(commandready&&data.command=='getresult'){
           res.send(result)

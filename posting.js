@@ -5,28 +5,23 @@ const posting = (data) => {
   let command = data.command
   let source = data.source
   let caption = data.caption
+  let user = data.user
+  let pass = data.pass
   return new Promise((resolve, reject) => {
-/*      const PUPPETEER_HEADLESS = process.env.PUPPETEER_HEADLESS === "TRUE"?true:false
-      const client = new Client({
-          authentication: new Authentication({
-              username: process.env.IG_USERNAME,
-              password: process.env.IG_PASSWORD,
-          }),
-          puppeteerOptions: {
-              headless: PUPPETEER_HEADLESS,
-              args: [
-                "--disable-setuid-sandbox",
-                "--no-sandbox",
-                "--single-process",
-                "--no-zygote",
-                "--disable-features=site-per-process"
-              ],
-          }
-      });
-*/      
+  
       const client = puppeterclient
-      client.authentication.username = process.env.IG_USERNAME
-      client.authentication.password = process.env.IG_PASSWORD
+      
+      if(user&&pass){
+        client.authentication.username = user
+        client.authentication.password = pass
+        client.authentication.dataDirName = user
+        client.puppeteerOptions.userDataDir = false
+      }else{
+        client.authentication.username = process.env.IG_USERNAME
+        client.authentication.password = process.env.IG_PASSWORD
+        client.authentication.dataDirName = process.env.IG_USERNAME
+        client.puppeteerOptions.userDataDir = false
+      }
       client.removeAllListeners('commanderror')
       client.removeAllListeners('commandsukses')
       client.removeAllListeners('authenticated')

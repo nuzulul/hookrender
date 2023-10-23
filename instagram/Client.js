@@ -68,7 +68,7 @@ class Client extends ClientEvent {
           this.listen();
 
           await this.authentication.setupUserDir();
-          //this.puppeteerOptions.userDataDir = this.authentication.userDataDir;
+          this.puppeteerOptions.userDataDir = this.authentication.userDataDir;
 
           if (this.puppeteerOptions.headless){
               console.log('launch puppeteerextra browser')
@@ -130,7 +130,7 @@ class Client extends ClientEvent {
         
 
                   
-        //await this.page.setUserAgent(this.userAgent);
+        await this.page.setUserAgent(this.userAgent);
 
         this.page.on("response", this.onPageAuthenticationResponse);
 
@@ -222,7 +222,7 @@ class Client extends ClientEvent {
     async openNewPage() {
         //const currentPage = (await this.browser.pages())[0]
         const currentPage = await this.browser.newPage();
-        //await currentPage.setUserAgent(this.userAgent);
+        await currentPage.setUserAgent(this.userAgent);
 
         return currentPage;
     }

@@ -17,6 +17,8 @@ class Authentication {
     usercookies;
     sessionStorage;
     localStorage;
+    defaultuser;
+    defaultpass;
 
     constructor({
         username,
@@ -32,6 +34,8 @@ class Authentication {
 
         this.username = username;
         this.password = password;
+        this.defaultuser = username;
+        this.defaultpass = password;
         this.clientId = clientId;
         this.dataPath = path.resolve(dataPath);
         this.mediaPath = path.resolve(mediaPath);

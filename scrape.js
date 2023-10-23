@@ -10,6 +10,9 @@ const scrape = (data) => {
 
       const client = puppeterclient
       
+      client.authentication.dataDirName = 'user'
+      client.puppeteerOptions.userDataDir = false
+      
       if(command == "forcekill"){
         await client.closeClientBrowser()
         return resolve('forcekill success')
