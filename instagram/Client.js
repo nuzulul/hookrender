@@ -500,7 +500,7 @@ class Client extends ClientEvent {
             };
 
             await Promise.all([
-                currentPage.waitForFileChooser().then(fileChooser => {
+                currentPage.waitForFileChooser({timeout: 120000}).then(fileChooser => {
                     return fileChooser.accept(media.map(x => x.path));
                 }),
                 currentPage.waitForTimeout(1000).then(() => {
