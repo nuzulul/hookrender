@@ -67,6 +67,12 @@ class Authentication {
         this.userMediaDir = userMediaDir;
     }
     
+    async makeDir(dir){
+        fs.mkdirSync(dir, {
+            recursive: true
+        })
+    }
+    
     async readCookies(){
         const cookiesPath = "./cookies.txt"
         const sessionStoragePath = "./sessionStorage.txt"

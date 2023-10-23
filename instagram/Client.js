@@ -279,8 +279,14 @@ class Client extends ClientEvent {
             const pages = (await this.browser.pages()).length
             
             if(pages > 0){
+              const path = './public'
               const currentPage = (await this.browser.pages())[pages - 1]
-              await currentPage.screenshot({ path: './public/result.png', fullPage: true })
+              try {
+                await currentPage.screenshot({ path: './public/result.png', fullPage: true })
+              }catch{
+                await this.authentication.makeDir(path)
+                await currentPage.screenshot({ path: './public/result.png', fullPage: true })
+              }
               return resolve('result.png');
             }else{
               return resolve('error');
