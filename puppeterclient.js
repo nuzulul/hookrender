@@ -1,7 +1,7 @@
 require("dotenv").config();
 const { Client, Authentication, FeedMedia, EVENTS, CROP_SIZES } = require("./instagram/instagram");
 
-const PUPPETEER_HEADLESS = process.env.PUPPETEER_HEADLESS === "TRUE"?true:false
+const PUPPETEER_HEADLESS = process.env.PUPPETEER_HEADLESS === "FALSE"?false:true
 const client = new Client({
     authentication: new Authentication({
         username: "ig",

@@ -70,6 +70,7 @@ class Client extends ClientEvent {
           await this.authentication.setupUserDir();
           this.puppeteerOptions.userDataDir = this.authentication.userDataDir;
 
+          console.log('headless: '+this.puppeteerOptions.headless)
           if (this.puppeteerOptions.headless){
               console.log('launch puppeteerextra browser')
               if (this.puppeteerOptions.browserWSEndpoint) {
