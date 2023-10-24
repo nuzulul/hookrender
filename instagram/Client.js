@@ -727,7 +727,7 @@ class Client extends ClientEvent {
             await currentPage.waitForTimeout(30000);
 
             try{
-              await currentPage.waitForSelector('svg[aria-label="Select crop"]');
+              await currentPage.waitForSelector('svg[aria-label="Select crop"]',{timeout: 0});
               console.log('found select crop')
             }catch(e){
               console.log('not found select crop')
