@@ -623,7 +623,7 @@ class Client extends ClientEvent {
                 await this.closeClientBrowser()
             }
             
-            resolve(true);
+            resolve('posting gambar sukses');
         });
     }
 
@@ -834,7 +834,7 @@ class Client extends ClientEvent {
                 await this.closeClientBrowser()
             }
 
-            resolve(true);
+            resolve('posting video sukses');
         });
     }
 }
