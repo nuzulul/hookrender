@@ -517,7 +517,7 @@ class Client extends ClientEvent {
                     console.log('waitForFileChooser')
                     return fileChooser.accept(media.map(x => x.path));
                 }),
-                currentPage.waitForTimeout(5000).then(() => {
+                currentPage.waitForTimeout(10000).then(() => {
                     console.log('click select from computer')
                     return currentPage.evaluate(() => {
                         return window.IGJS.clickSelectFromComputerButton()
@@ -679,13 +679,15 @@ class Client extends ClientEvent {
             try{
               await currentPage.waitForSelector("svg[aria-label='New post']")
             } catch(e) {
-              reject(e)
+              return reject(e)
             }
             console.log("siap upload")
 
             try{
               await currentPage.evaluate(Injects);
-            }catch{}
+            }catch(e){
+              return reject(e)
+            }
 
             const openNewPostModal = await currentPage.evaluate(_ => {
                 return window.IGJS.openNewPostModal();
@@ -699,11 +701,23 @@ class Client extends ClientEvent {
                 return reject("Post modal not found. This is an error, please make a report to us.");
             };
 
+            try{
+              await currentPage.waitForFunction(
+                '[...document.querySelectorAll("button")].find(b => b.innerText.toLowerCase().match("select from computer"))',
+              );
+              console.log('found select from computer')
+            }catch{
+              console.log('not found select from computer')
+              return reject("Post modal not found.");
+            }  
+
             await Promise.all([
-                currentPage.waitForFileChooser().then(fileChooser => {
+                currentPage.waitForFileChooser({timeout: 120000}).then(fileChooser => {
+                    console.log('waitForFileChooser')
                     return fileChooser.accept(media.map(x => x.path));
                 }),
-                currentPage.waitForTimeout(1000).then(() => {
+                currentPage.waitForTimeout(10000).then(() => {
+                    console.log('click select from computer')
                     return currentPage.evaluate(() => {
                         return window.IGJS.clickSelectFromComputerButton()
                     })
