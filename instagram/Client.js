@@ -813,7 +813,7 @@ class Client extends ClientEvent {
             })
 
             await currentPage.waitForNetworkIdle({
-                timeout: 60 * 2 * 1000
+                timeout: 0
             });
 
             try{
