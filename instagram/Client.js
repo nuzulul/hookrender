@@ -613,7 +613,7 @@ class Client extends ClientEvent {
             } catch(e) {
               console.log('posting gagal')
               console.log(e)
-              reject(e)
+              return reject(e)
             }
             
             removeAllMedia();
@@ -723,8 +723,16 @@ class Client extends ClientEvent {
                     })
                 })
             ])
+            
+            await currentPage.waitForTimeout(30000);
 
-            await currentPage.waitForSelector('svg[aria-label="Select crop"]');
+            try{
+              await currentPage.waitForSelector('svg[aria-label="Select crop"]');
+              console.log('found select crop')
+            }catch(e){
+              console.log('not found select crop')
+              return reject(e)
+            }
 
             const cropButton = await currentPage.evaluate(() => {
                 const button = document.querySelector('svg[aria-label="Select crop"]').closest('button')
@@ -816,7 +824,7 @@ class Client extends ClientEvent {
             } catch(e) {
               console.log('posting gagal')   
               console.log(e)
-              reject(e)
+              return reject(e)
             }
             
             removeAllMedia();
