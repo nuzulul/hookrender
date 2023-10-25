@@ -824,7 +824,7 @@ class Client extends ClientEvent {
 
             try{
                 await currentPage.waitForFunction(
-                  '[...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("your reel has been shared"))',
+                  '[...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("your reel has been shared"))',{timeout: 600_000}
                 );
                 console.log('posting suskses')            
             } catch(e) {
