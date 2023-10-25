@@ -168,6 +168,12 @@ class Client extends ClientEvent {
             this.page.waitForNavigation(),
           ]);
         }catch(e){}
+
+        const myPromiseSC = this.screenShot("result.png")
+        myPromiseSC.then(
+          function(value) { console.log(value); },
+          function(error) { console.log(error); }
+        )
         
         console.log('status4: '+this.status)
 
@@ -287,9 +293,9 @@ class Client extends ClientEvent {
                 await this.authentication.makeDir(path)
                 await currentPage.screenshot({ path: './public/result.png', fullPage: true })
               }
-              return resolve('result.png');
+              return resolve('screenshot result.png');
             }else{
-              return resolve('error');
+              return resolve('screenshot error');
             }        
             
         });
@@ -712,7 +718,7 @@ class Client extends ClientEvent {
             }  
 
             await Promise.all([
-                currentPage.waitForFileChooser({timeout: 120000}).then(fileChooser => {
+                currentPage.waitForFileChooser({timeout: 0}).then(fileChooser => {
                     console.log('waitForFileChooser')
                     return fileChooser.accept(media.map(x => x.path));
                 }),
