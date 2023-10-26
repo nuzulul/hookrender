@@ -733,7 +733,7 @@ class Client extends ClientEvent {
             await currentPage.waitForTimeout(30000);
 
             for (var i = 0; i < Infinity; i++) {
-              if(i == 20)break
+              if(i == 10)break
               try{
                 await currentPage.waitForSelector('svg[aria-label="Select crop"]',)
                 console.log('found select crop')
@@ -826,7 +826,26 @@ class Client extends ClientEvent {
             });
 
             for (var i = 0; i < Infinity; i++) {
-              if(i == 20)break
+              if(i == 10){
+                
+                //wait screenshoot
+                (async () => {
+                  await new Promise((resolve, reject) => {
+                    this.screenShot("result.png")
+                      .then(result => {
+                         console.log(result)
+                         resolve();
+                      })
+                      .catch(err => { console.log(err);resolve(); });
+                  })
+                  .catch(err => {
+                     console.log('Oh noes!! Error: ', err.code)
+                  });
+                })();
+                
+                break
+                
+              }
               try{
                 await currentPage.waitForFunction(
                   '[...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("your reel has been shared"))',
