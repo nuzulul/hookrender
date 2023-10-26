@@ -774,15 +774,37 @@ class Client extends ClientEvent {
             await currentPage.waitForTimeout(30000);
 
             for (var i = 0; i < Infinity; i++) {
-              if(i == 10)break
+              let limit = 5
               try{
                 await currentPage.waitForSelector('svg[aria-label="Select crop"]',)
                 console.log('found select crop')
-                break  
-              }catch(e){
+                break
+              } catch(e) {
                 console.log('loop deteksi crop ke: '+i)
+                if(i == limit-1){
+                  //wait screenshoot
+                  (async () => {
+                    await new Promise((resolve, reject) => {
+                        const myPromiseSC = this.screenShot("result.png")
+                        myPromiseSC.then(
+                          function(value) { console.log(value);resolve(value) },
+                          function(error) { console.log(error);reject(error) }
+                        )
+                    })
+                    .catch(err => {
+                       console.log('screenshot error')
+                    });
+                  })();
+                  
+                }
+                if(i == limit){
+                  return reject(e)
+                }
               }
-            }
+              if(i == limit){
+                break
+              }
+            } 
 
             const cropButton = await currentPage.evaluate(() => {
                 const button = document.querySelector('svg[aria-label="Select crop"]').closest('button')
