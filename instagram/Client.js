@@ -732,12 +732,15 @@ class Client extends ClientEvent {
             
             await currentPage.waitForTimeout(30000);
 
-            try{
-              await currentPage.waitForSelector('svg[aria-label="Select crop"]',{timeout: 0});
-              console.log('found select crop')
-            }catch(e){
-              console.log('not found select crop')
-              return reject(e)
+            for (var i = 0; i < Infinity; i++) {
+              if(i == 20)break
+              try{
+                await currentPage.waitForSelector('svg[aria-label="Select crop"]',)
+                console.log('found select crop')
+                break  
+              }catch(e){
+                console.log('loop deteksi crop ke: '+i)
+              }
             }
 
             const cropButton = await currentPage.evaluate(() => {
@@ -822,15 +825,17 @@ class Client extends ClientEvent {
                 timeout: 0
             });
 
-            try{
+            for (var i = 0; i < Infinity; i++) {
+              if(i == 20)break
+              try{
                 await currentPage.waitForFunction(
-                  '[...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("your reel has been shared"))',{timeout: 600_000}
+                  '[...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("your reel has been shared"))',
                 );
-                console.log('posting suskses')            
-            } catch(e) {
-              console.log('posting gagal')   
-              console.log(e)
-              return reject(e)
+                console.log('posting suskses')
+                break  
+              }catch(e){
+                console.log('loop deteksi posting ke: '+i)
+              }
             }
             
             removeAllMedia();
