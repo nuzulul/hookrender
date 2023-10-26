@@ -155,19 +155,21 @@ class Client extends ClientEvent {
         
         console.log('status3: '+this.status)
         
-        try{
-          await this.page.type('input[name="username"]', this.authentication.username);
-          await this.page.waitForTimeout(2000);
-          await this.page.type('input[name="password"]', this.authentication.password);
-          await this.page.waitForTimeout(2000);
-          //await this.page.click('[type="submit"]');
-          console.log('login form')
-          //await this.page.waitForNavigation({waitUntil: 'networkidle2'});
-          await Promise.all([
-            this.page.click('[type="submit"]'),
-            this.page.waitForNavigation(),
-          ]);
-        }catch(e){}
+        if (this.status === STATUS.UNAUTHENTICATED) {
+          try{
+            await this.page.type('input[name="username"]', this.authentication.username);
+            await this.page.waitForTimeout(2000);
+            await this.page.type('input[name="password"]', this.authentication.password);
+            await this.page.waitForTimeout(2000);
+            //await this.page.click('[type="submit"]');
+            console.log('login form')
+            //await this.page.waitForNavigation({waitUntil: 'networkidle2'});
+            await Promise.all([
+              this.page.click('[type="submit"]'),
+              this.page.waitForNavigation(),
+            ]);
+          }catch(e){}
+        }
 
         const myPromiseSC = this.screenShot("result.png")
         myPromiseSC.then(
@@ -177,35 +179,42 @@ class Client extends ClientEvent {
         
         console.log('status4: '+this.status)
 
-        try {
-          await this.page.waitForSelector("svg[aria-label='New post']")
-          console.log('detect true login');
-          this.onClientPosAuthenticated()
-          console.log('status5: '+this.status)
-          return true;
-        } catch(e) {
-          console.log('detect login failed')
+        for (var i = 0; i < Infinity; i++) {
+          if(i == 5){
+            break
+          }
+          try {
+            await this.page.waitForSelector("svg[aria-label='New post']")
+            console.log('detect true login');
+            this.onClientPosAuthenticated()
+            console.log('status5: '+this.status)
+            return true;
+          } catch(e) {
+            console.log('detect login failed ke: '+i)
+          }
         }
 
-        try{
-            await currentPage.waitForFunction(
-              '[...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("dismiss"))',
-            );
-            console.log('detect suspect automated')            
-            // dismiss.
-            await currentPage.evaluate(() => {
-                [...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("dismiss")).focus();
-                [...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("dismiss")).click();
-            })
-            this.page.waitForNavigation()
-            this.onClientPosAuthenticated()
-            console.log('detect suspect automated resolve')  
-        } catch(e) {
-          console.log('dismis suspect automated gagal')  
-          if (!this.page.isClosed()) {
-              await this.page.close();
+        for (var i = 0; i < Infinity; i++) {
+          if(i == 5){
+            break
           }
-          this.onClientCommandError('auth failed')  
+          try{
+              await currentPage.waitForFunction(
+                '[...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("dismiss"))',
+              );
+              console.log('detect suspect automated')            
+              // dismiss.
+              await currentPage.evaluate(() => {
+                  [...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("dismiss")).focus();
+                  [...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("dismiss")).click();
+              })
+              this.page.waitForNavigation()
+              this.onClientPosAuthenticated()
+              console.log('detect suspect automated resolve')  
+              return true;
+          } catch(e) {
+            console.log('dismis suspect automated gagal ke: '+i)  
+          }
         }
         
         console.log('status6: '+this.status)
@@ -217,6 +226,11 @@ class Client extends ClientEvent {
         //const sessionStorage = await this.page.evaluate(() =>JSON.stringify(window.sessionStorage));
         //const localStorage = await this.page.evaluate(() => JSON.stringify(window.localStorage));
         //await this.authentication.writeCookies(cookiesObject,sessionStorage,localStorage);
+
+        if (!this.page.isClosed()) {
+            await this.page.close();
+        }
+        this.onClientCommandError('auth failed') 
         
         return true;
     }
@@ -281,21 +295,22 @@ class Client extends ClientEvent {
 
     async screenShot(source) {
         console.log('screenShot')
-        return new Promise(async (resolve) => {
+        return new Promise(async (resolve,reject) => {
             const pages = (await this.browser.pages()).length
             
             if(pages > 0){
               const path = './public'
               const currentPage = (await this.browser.pages())[pages - 1]
               try {
-                await currentPage.screenshot({ path: './public/result.png', fullPage: true })
-              }catch{
                 await this.authentication.makeDir(path)
                 await currentPage.screenshot({ path: './public/result.png', fullPage: true })
+                return resolve('screenshot result.png');
+              }catch{
+                return reject('screenshot error failed')
               }
-              return resolve('screenshot result.png');
+              
             }else{
-              return resolve('screenshot error');
+              return reject('screenshot error no page');
             }        
             
         });
@@ -682,12 +697,38 @@ class Client extends ClientEvent {
                 timeout: 0,
             });
 
-            try{
-              await currentPage.waitForSelector("svg[aria-label='New post']")
-            } catch(e) {
-              return reject(e)
-            }
-            console.log("siap upload")
+            for (var i = 0; i < Infinity; i++) {
+              let limit = 5
+              try{
+                await currentPage.waitForSelector("svg[aria-label='New post']")
+                console.log("tombol post terdeteksi")
+                break
+              } catch(e) {
+                console.log("deteksi tombol post ke: "+i)
+                if(i == limit-1){
+                  //wait screenshoot
+                  (async () => {
+                    await new Promise((resolve, reject) => {
+                        const myPromiseSC = this.screenShot("result.png")
+                        myPromiseSC.then(
+                          function(value) { console.log(value);resolve(value) },
+                          function(error) { console.log(error);reject(error) }
+                        )
+                    })
+                    .catch(err => {
+                       console.log('screenshot error')
+                    });
+                  })();
+                  
+                }
+                if(i == limit){
+                  return reject(e)
+                }
+              }
+              if(i == limit){
+                break
+              }
+            }            
 
             try{
               await currentPage.evaluate(Injects);
@@ -826,34 +867,37 @@ class Client extends ClientEvent {
             });
 
             for (var i = 0; i < Infinity; i++) {
-              if(i == 10){
-                
-                //wait screenshoot
-                (async () => {
-                  await new Promise((resolve, reject) => {
-                    this.screenShot("result.png")
-                      .then(result => {
-                         console.log(result)
-                         resolve();
-                      })
-                      .catch(err => { console.log(err);resolve(); });
-                  })
-                  .catch(err => {
-                     console.log('Oh noes!! Error: ', err.code)
-                  });
-                })();
-                
-                break
-                
-              }
+              let limit = 10
               try{
-                await currentPage.waitForFunction(
-                  '[...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("your reel has been shared"))',
-                );
-                console.log('posting suskses')
-                break  
-              }catch(e){
+                  await currentPage.waitForFunction(
+                    '[...document.querySelectorAll("span")].find(b => b.innerText.toLowerCase().match("your reel has been shared"))',
+                  );
+                  console.log('posting suskses')
+                  break
+              } catch(e) {
                 console.log('loop deteksi posting ke: '+i)
+                if(i == limit-1){
+                  //wait screenshoot
+                  (async () => {
+                    await new Promise((resolve, reject) => {
+                        const myPromiseSC = this.screenShot("result.png")
+                        myPromiseSC.then(
+                          function(value) { console.log(value);resolve(value) },
+                          function(error) { console.log(error);reject(error) }
+                        )
+                    })
+                    .catch(err => {
+                       console.log('screenshot error')
+                    });
+                  })();
+                  
+                }
+                if(i == limit){
+                  return reject(e)
+                }
+              }
+              if(i == limit){
+                break
               }
             }
             

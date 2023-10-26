@@ -48,7 +48,7 @@ class ClientEvent extends EventEmitter {
         //console.log(response.url())
         if (response.status() == 302 && response.url() == URLS.LOGIN) {
             console.log('auth sukses from 302')
-            this.emit(EVENTS.AUTHENTICATED);
+            this.emit(EVENTS.PREAUTHENTICATED);
         }
         if (response.url().split("?")[0] == URLS.LOGIN_API) {
             const responseJSON = await response.json();
